@@ -1,0 +1,11 @@
+{
+  "name": "sql-generator",
+  "version": "1.0.0",
+  "description": "Generates SQL statements from .erdplus files",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
