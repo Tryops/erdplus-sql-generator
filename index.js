@@ -1,8 +1,15 @@
 const fs = require('fs');
 const path = require('path');
 
+// TODO: CONSTRAINT fk_02 FOREIGN KEY (pk_fk_pk_kunden_nr) REFERENCES Kunde(pk_kunden_nr) ON DELETE CASCADE,
+
 function changeFileExtesion(filepath, ext) {
    return path.format({ ...path.parse(filepath), base: undefined, ext: ext })
+}
+
+let counter = 0;
+function nextNum() {
+    return counter++;
 }
 
 const file = process.argv[2];
@@ -41,17 +48,22 @@ if(file) {
         const fullEntities =
         entities
             .map(e => {
-                e.attributes = attributes.filter(a => a.to === e.id/*  && !a.pk */).map(a => a.name); // TODO primary_keys
+                e.primary_keys = attributes.filter(a => a.to === e.id && a.pk).map(a => a.name);
+                e.attributes = attributes.filter(a => a.to === e.id && !a.pk).map(a => a.name);
                 return e;
             });
 
         const sql = fullEntities.map(e => 
-            `CREATE TABLE ${e.name} (\n${e.attributes.map(a => '    ' + a + ' VARCHAR(255);').join('\n')}\n);`
+            'CREATE TABLE ' + e.name + '(\n' + 
+                e.primary_keys.map(p => '    ' + p + ' INTEGER NOT NULL;').join('\n') + '\n' +
+                e.attributes.map(a => '    ' + a + ' VARCHAR(255);').join('\n') + '\n' +
+                '    CONSTRAINT pk_' + nextNum() + ' PRIMARY KEY (' + e.primary_keys.join(', ') + ')' +
+            '\n);'
         ).join('\n\n');
 
         console.log(sql);
 
-        fs.writeFileSync(changeFileExtesion(file, '.sql'), sql);
+        fs.writeFileSync(changeFileExtesion(file, '.sql'), `/* Generated Oracle SQL from '${file}' */\n\n` + sql);
 
     } catch (err) {
         console.error(err);
