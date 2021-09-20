@@ -45,7 +45,23 @@ if(file) {
             })
             .filter(a => a); // filter out unbound attributes
 
-        const fullEntities =
+        const relationships = 
+        shapes
+            .filter(s => s.type === 'Relationship')
+            .map(r => ({
+                name: r.details.name, 
+                id: r.details.id, 
+                from: {
+                    entity: r.details.slots[0].entityId, 
+                    cardinality: r.details.slots[0].cardinality 
+                }, 
+                to: {
+                    entity: r.details.slots[1].entityId, 
+                    cardinality: r.details.slots[1].cardinality 
+                }
+            }));
+
+        let fullEntities =
         entities
             .map(e => {
                 e.primary_keys = attributes.filter(a => a.to === e.id && a.pk).map(a => a.name);
@@ -53,11 +69,37 @@ if(file) {
                 return e;
             });
 
+        fullEntities = 
+        fullEntities
+            .map(e => {
+                e.foreign_keys = [];
+                const from_pks = relationships
+                    .filter(r => r.from.entity === e.id && r.from.cardinality === 'many')
+                    .map(r => {
+                        const ent = fullEntities.find(e2 => e2.id === r.to.entity);
+                        return { attribute: 'fk_' + ent.primary_keys[0], entity: ent.name, primary_key: ent.primary_keys[0] };
+                    });
+
+                const to_pks = relationships
+                    .filter(r => r.to.entity === e.id && r.to.cardinality === 'many')
+                    .map(r => {
+                        const ent = fullEntities.find(e2 => e2.id === r.from.entity);
+                        return { attribute: 'fk_' + ent.primary_keys[0], entity: ent.name, primary_key: ent.primary_keys[0] };
+                    });
+
+                e.foreign_keys = [...from_pks, ...to_pks];
+
+                return e;
+            });
+
         const sql = fullEntities.map(e => 
-            'CREATE TABLE ' + e.name + '(\n' + 
+            'CREATE TABLE ' + e.name + ' (\n' + 
                 e.primary_keys.map(p => '    ' + p + ' INTEGER NOT NULL;').join('\n') + '\n' +
+                e.foreign_keys.map(f => '    ' + f.attribute + ' INTEGER NOT NULL;').join('\n') + '\n' +
                 e.attributes.map(a => '    ' + a + ' VARCHAR(255);').join('\n') + '\n' +
-                '    CONSTRAINT pk_' + nextNum() + ' PRIMARY KEY (' + e.primary_keys.join(', ') + ')' +
+                '    CONSTRAINT pk_' + nextNum() + ' PRIMARY KEY (' + e.primary_keys.join(', ') + ');\n' +
+
+                e.foreign_keys.map(f => `    CONSTRAINT fk_${nextNum()} FOREIGN KEY (${f.attribute}) REFERENCES ${f.entity}(${f.primary_key}) ON DELETE CASCADE;`).join('\n') +
             '\n);'
         ).join('\n\n');
 
