@@ -2,8 +2,6 @@ const fs = require('fs');
 const path = require('path');
 const util = require('util');
 
-// TODO: CONSTRAINT fk_02 FOREIGN KEY (pk_fk_pk_kunden_nr) REFERENCES Kunde(pk_kunden_nr) ON DELETE CASCADE,
-
 function changeFileExtesion(filepath, ext) {
    return path.format({ ...path.parse(filepath), base: undefined, ext: ext })
 }
