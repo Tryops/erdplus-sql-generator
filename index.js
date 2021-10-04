@@ -1,5 +1,7 @@
+const exp = require('constants');
 const fs = require('fs');
 const path = require('path');
+const { exit } = require('process');
 const util = require('util');
 
 function changeFileExtesion(filepath, ext) {
@@ -12,6 +14,7 @@ function nextNum() {
 }
 
 const file = process.argv[2];
+const export_type = process.argv[3]; // 'sql' (for sql create table statements) or 'rel' (for relational model)
 
 if(file) {
     try {
@@ -104,7 +107,7 @@ if(file) {
                         return { attribute: 'fk_' + ent.primary_keys[0], entity: ent.name, primary_key: ent.primary_keys[0] };
                     });
                 
-                console.log(...[...from_fks, ...to_fks]);
+                // console.log(...[...from_fks, ...to_fks]);
                 e.foreign_keys.push(...[...from_fks, ...to_fks]);
                 return e;
             });
@@ -139,21 +142,27 @@ if(file) {
         fullEntities = [...fullEntities, ...weakEntities];
         fullEntities = fullEntities.sort((e1, e2) => e1.foreign_keys.length - e2.foreign_keys.length);
 
-        const sql = fullEntities.map(e => 
-            'CREATE TABLE ' + e.name + ' (\n' + 
-                e.primary_keys.map(p => '    ' + p + ' INTEGER NOT NULL;').join('\n') + '\n' +
-                e.foreign_keys.map(f => '    ' + f.attribute + ' INTEGER NOT NULL;').join('\n') + '\n' +
-                e.attributes.map(a => '    ' + a + ' TEXT;').join('\n') + '\n' +
-                '    CONSTRAINT pk_' + nextNum() + ' PRIMARY KEY (' + e.primary_keys.join(', ') + ');\n' +
+        if(export_type === 'sql') {
+            const sql = fullEntities.map(e => 
+                'CREATE TABLE ' + e.name + ' (\n' + 
+                    e.primary_keys.map(p => '    ' + p + ' INTEGER NOT NULL;').join('\n') + '\n' +
+                    e.foreign_keys.map(f => '    ' + f.attribute + ' INTEGER NOT NULL;').join('\n') + '\n' +
+                    e.attributes.map(a => '    ' + a + ' TEXT;').join('\n') + '\n' +
+                    '    CONSTRAINT pk_' + nextNum() + ' PRIMARY KEY (' + e.primary_keys.join(', ') + ');\n' +
 
-                e.foreign_keys.map(f => `    CONSTRAINT fk_${nextNum()} FOREIGN KEY (${f.attribute}) REFERENCES ${f.entity}(${f.primary_key}) ON DELETE CASCADE;`).join('\n') +
-            '\n);'
-        ).join('\n\n');
-
-        console.log(sql);
-
-        fs.writeFileSync(changeFileExtesion(file, '.sql'), `/* Generated Oracle SQL from '${file}' */\n\n` + sql);
-
+                    e.foreign_keys.map(f => `    CONSTRAINT fk_${nextNum()} FOREIGN KEY (${f.attribute}) REFERENCES ${f.entity}(${f.primary_key}) ON DELETE CASCADE;`).join('\n') +
+                '\n);'
+            ).join('\n\n');
+            console.log(sql);
+            fs.writeFileSync(changeFileExtesion(file, '.sql'), `/* Generated Oracle SQL from '${file}' */\n\n` + sql);
+        } else if (export_type === 'rel') {
+            const rel = fullEntities.map(e => e.name + '(' + e.primary_keys.join(', ') + ', ' + e.foreign_keys.map(f => f.attribute).join(', ') + ', ' + e.attributes.join(', ') + ')').join('\n');
+            console.log(rel);
+            fs.writeFileSync(changeFileExtesion(file, '.txt'), `/* Generated Relational Model from '${file}' */\n\n` + rel);
+        } else {
+            console.error('Invalid/missing export type ("sql" or "rel")');
+            console.error('Try this: node index.js ' + file + ' sql');
+        }
     } catch (err) {
         console.error(err);
     }
