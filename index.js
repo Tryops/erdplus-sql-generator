@@ -145,18 +145,18 @@ if(file) {
         if(export_type === 'sql') {
             const sql = fullEntities.map(e => 
                 'CREATE TABLE ' + e.name + ' (\n' + 
-                    e.primary_keys.map(p => '    ' + p + ' INTEGER NOT NULL;').join('\n') + '\n' +
-                    e.foreign_keys.map(f => '    ' + f.attribute + ' INTEGER NOT NULL;').join('\n') + '\n' +
-                    e.attributes.map(a => '    ' + a + ' TEXT;').join('\n') + '\n' +
-                    '    CONSTRAINT pk_' + nextNum() + ' PRIMARY KEY (' + e.primary_keys.join(', ') + ');\n' +
-
-                    e.foreign_keys.map(f => `    CONSTRAINT fk_${nextNum()} FOREIGN KEY (${f.attribute}) REFERENCES ${f.entity}(${f.primary_key}) ON DELETE CASCADE;`).join('\n') +
+                    e.primary_keys.map(p => '    ' + p + ' INTEGER NOT NULL;')
+                    .concat(e.foreign_keys.map(f => '    ' + f.attribute + ' INTEGER NOT NULL;'))
+                    .concat(e.attributes.map(a => '    ' + a + ' TEXT;'))
+                    .concat(['    CONSTRAINT pk_' + nextNum() + ' PRIMARY KEY (' + e.primary_keys.join(', ') + ');'])
+                    .concat(e.foreign_keys.map(f => `    CONSTRAINT fk_${nextNum()} FOREIGN KEY (${f.attribute}) REFERENCES ${f.entity}(${f.primary_key}) ON DELETE CASCADE;`))
+                    .join('\n') + 
                 '\n);'
             ).join('\n\n');
             console.log(sql);
             fs.writeFileSync(changeFileExtesion(file, '.sql'), `/* Generated Oracle SQL from '${file}' */\n\n` + sql);
         } else if (export_type === 'rel') {
-            const rel = fullEntities.map(e => e.name + '(' + e.primary_keys.join(', ') + ', ' + e.foreign_keys.map(f => f.attribute).join(', ') + ', ' + e.attributes.join(', ') + ')').join('\n');
+            const rel = fullEntities.map(e => `${e.name}(${e.primary_keys.concat(e.foreign_keys.map(f => f.attribute)).concat(e.attributes).join(', ')})`).join('\n');
             console.log(rel);
             fs.writeFileSync(changeFileExtesion(file, '.txt'), `/* Generated Relational Model from '${file}' */\n\n` + rel);
         } else {
