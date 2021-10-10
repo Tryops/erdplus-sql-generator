@@ -145,12 +145,12 @@ if(file) {
         if(export_type === 'sql') {
             const sql = fullEntities.map(e => 
                 'CREATE TABLE ' + e.name + ' (\n' + 
-                    e.primary_keys.map(p => '    ' + p + ' INTEGER NOT NULL;')
-                    .concat(e.foreign_keys.map(f => '    ' + f.attribute + ' INTEGER NOT NULL;'))
-                    .concat(e.attributes.map(a => '    ' + a + ' TEXT;'))
-                    .concat(['    CONSTRAINT pk_' + nextNum() + ' PRIMARY KEY (' + e.primary_keys.join(', ') + ');'])
-                    .concat(e.foreign_keys.map(f => `    CONSTRAINT fk_${nextNum()} FOREIGN KEY (${f.attribute}) REFERENCES ${f.entity}(${f.primary_key}) ON DELETE CASCADE;`))
-                    .join('\n') + 
+                    e.primary_keys.map(p => '    ' + p + ' INTEGER NOT NULL')
+                    .concat(e.foreign_keys.map(f => '    ' + f.attribute + ' INTEGER NOT NULL'))
+                    .concat(e.attributes.map(a => '    ' + a + ' TEXT'))
+                    .concat(['    CONSTRAINT pk_' + nextNum() + ' PRIMARY KEY (' + e.primary_keys.join(', ') + ')'])
+                    .concat(e.foreign_keys.map(f => `    CONSTRAINT fk_${nextNum()} FOREIGN KEY (${f.attribute}) REFERENCES ${f.entity}(${f.primary_key}) ON DELETE CASCADE`))
+                    .join(',\n') + 
                 '\n);'
             ).join('\n\n');
             console.log(sql);
